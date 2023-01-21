@@ -1,6 +1,8 @@
 import logging
 import xml.etree.ElementTree as ET
-from typing import List, Optional, Union
+from typing import List
+from typing import Optional
+from typing import Union
 
 import ply.yacc as yacc
 from ply.lex import Lexer
@@ -10,7 +12,6 @@ from ply.yacc import YaccProduction
 from ply.yacc import YaccSymbol
 
 from .lexer import CQLLexer
-
 
 LOGGER = logging.getLogger(__name__)
 
@@ -46,6 +47,9 @@ class CQLParseError(Exception):
     pass
 
 
+# ---------------------------------------------------------------------------
+
+
 class CQLPrefixedName:
     def __init__(self, name: str):
         self.name = name
@@ -65,6 +69,9 @@ class CQLPrefixedName:
     def __str__(self) -> str:
         return self.name
 
+    def __repr__(self) -> str:
+        return repr(self.name)
+
     def __eq__(self, __o: object) -> bool:
         if isinstance(__o, str):
             return __o == self.name
@@ -73,9 +80,14 @@ class CQLPrefixedName:
         return False
 
 
+# ---------------------------------------------------------------------------
+
+
 class CQLModifier:
     def __init__(self, name: str, comparitor: str = None, value: str = None):
-        self.name = CQLPrefixedName(name)
+        self.name = (
+            CQLPrefixedName(name) if not isinstance(name, CQLPrefixedName) else name
+        )
         self.comparitor = comparitor
         self.value = value
         # TODO: check prefix splitting
@@ -87,11 +99,17 @@ class CQLModifier:
 
     def toXCQL(self) -> ET.Element:
         ele = ET.Element("modifier")
-        ET.SubElement(ele, "type").text = self.name
+        ET.SubElement(ele, "type").text = str(self.name)
         if self.comparitor is not None and self.value is not None:
             ET.SubElement(ele, "comparison").text = self.comparitor
             ET.SubElement(ele, "value").text = self.value
         return ele
+
+    def __str__(self) -> str:
+        return self.toCQL()
+
+    def __repr__(self) -> str:
+        return f"CQLModifier[{self.toCQL()}]"
 
 
 class CQLModifierable:
@@ -112,40 +130,11 @@ class CQLModifierable:
             ele.append(modifier.toXCQL())
         return ele
 
+    def __str__(self) -> str:
+        return self.toCQL()
 
-class CQLRelation(CQLModifierable):
-    def __init__(self, comparitor: str, modifiers: List[CQLModifier] = None):
-        super().__init__(modifiers)
-        self.comparitor = CQLPrefixedName(comparitor)
-
-    def toCQL(self) -> str:
-        return f"{self.comparitor}{CQLModifierable.toCQL(self)}"
-
-    def toXCQL(self) -> ET.Element:
-        ele = ET.Element("relation")
-        ET.SubElement(ele, "value").text = self.comparitor
-
-        ele_modifiers = CQLModifierable.toXCQL(self)
-        if ele_modifiers:
-            ele.append(ele_modifiers)
-        return ele
-
-
-class CQLBoolean(CQLModifierable):
-    def __init__(self, value: str, modifiers: List[str] = None):
-        super().__init__(modifiers)
-        self.value = value
-
-    def toCQL(self) -> str:
-        return f"{self.value}{CQLModifierable.toCQL(self)}"
-
-    def toXCQL(self) -> ET.Element:
-        ele = ET.Element("boolean")
-        ET.SubElement(ele, "value").text = self.value
-        ele_modifiers = CQLModifierable.toXCQL(self)
-        if ele_modifiers:
-            ele.append(ele_modifiers)
-        return ele
+    def __repr__(self) -> str:
+        return f"CQLModifierable[{self.toCQL()}]"
 
 
 class CQLPrefix:
@@ -155,14 +144,21 @@ class CQLPrefix:
 
     def toCQL(self) -> str:
         if self.prefix is None:
-            return f'> "{self.uri}"'
-        return f'> {self.prefix} = "{self.uri}"'
+            return f"> {escape(self.uri)}"
+        return f"> {self.prefix} = {escape(self.uri)}"
 
     def toXCQL(self) -> ET.Element:
         ele = ET.Element("prefix")
-        ET.SubElement(ele, "name").text = self.prefix
+        if self.prefix is not None:
+            ET.SubElement(ele, "name").text = str(self.prefix)
         ET.SubElement(ele, "identifier").text = self.uri
         return ele
+
+    def __str__(self) -> str:
+        return self.toCQL()
+
+    def __repr__(self) -> str:
+        return f"CQLPrefix[{self.toCQL()}]"
 
 
 class CQLPrefixable:
@@ -181,26 +177,41 @@ class CQLPrefixable:
             return None
 
         ele_prefixes = ET.Element("prefixes")
+        # sorted(self.prefixes, key=lambda p: (p.prefix, p.uri))
         for prefix in self.prefixes:
             ele_prefixes.append(prefix.toXCQL())
         return ele_prefixes
+
+    def __str__(self) -> str:
+        return self.toCQL()
+
+    def __repr__(self) -> str:
+        return f"CQLPrefixable[{self.toCQL()}]"
 
 
 class CQLSortSpec(CQLModifierable):
     def __init__(self, index: str, modifiers: List[str] = None):
         super().__init__(modifiers)
-        self.index = CQLPrefixedName(index)
+        self.index = (
+            CQLPrefixedName(index) if not isinstance(index, CQLPrefixedName) else index
+        )
 
     def toCQL(self):
         return f"sortBy {escape(self.index)}{CQLModifierable.toCQL(self)}"
 
     def toXCQL(self) -> ET.Element:
-        ele = ET.Element("index")
-        ET.SubElement(ele, "value").text = self.index.name
+        ele = ET.Element("key")
+        ET.SubElement(ele, "index").text = str(self.index)
         ele_modifiers = CQLModifierable.toXCQL(self)
         if ele_modifiers:
             ele.append(ele_modifiers)
         return ele
+
+    def __str__(self) -> str:
+        return self.toCQL()
+
+    def __repr__(self) -> str:
+        return f"CQLSortSpec[{self.toCQL()}]"
 
 
 class CQLSortable:
@@ -229,12 +240,75 @@ class CQLSortable:
             ele_sortKeys.append(sortSpec.toXCQL())
         return ele_sortKeys
 
+    def __str__(self) -> str:
+        return self.toCQL()
 
-class CQLClause(CQLPrefixable, CQLSortable):
+    def __repr__(self) -> str:
+        return f"CQLSortable[{self.toCQL()}]"
+
+
+# ---------------------------------------------------------------------------
+
+
+class CQLRelation(CQLModifierable):
+    def __init__(self, comparitor: str, modifiers: List[CQLModifier] = None):
+        super().__init__(modifiers)
+        self.comparitor = (
+            CQLPrefixedName(comparitor)
+            if not isinstance(comparitor, CQLPrefixedName)
+            else comparitor
+        )
+
+    def toCQL(self) -> str:
+        return f"{self.comparitor}{CQLModifierable.toCQL(self)}"
+
+    def toXCQL(self) -> ET.Element:
+        ele = ET.Element("relation")
+        ET.SubElement(ele, "value").text = str(self.comparitor)
+
+        ele_modifiers = CQLModifierable.toXCQL(self)
+        if ele_modifiers:
+            ele.append(ele_modifiers)
+        return ele
+
+    def __repr__(self) -> str:
+        return f"CQLRelation[{self.toCQL()}]"
+
+    def __str__(self) -> str:
+        return self.toCQL()
+
+
+class CQLBoolean(CQLModifierable):
+    def __init__(self, value: str, modifiers: List[str] = None):
+        super().__init__(modifiers)
+        self.value = value
+
+    def toCQL(self) -> str:
+        return f"{self.value}{CQLModifierable.toCQL(self)}"
+
+    def toXCQL(self) -> ET.Element:
+        ele = ET.Element("boolean")
+        ET.SubElement(ele, "value").text = self.value
+        ele_modifiers = CQLModifierable.toXCQL(self)
+        if ele_modifiers:
+            ele.append(ele_modifiers)
+        return ele
+
+    def __str__(self) -> str:
+        return self.toCQL()
+
+    def __repr__(self) -> str:
+        return f"CQLBoolean[{self.toCQL()}]"
+
+
+class CQLSearchClause(CQLPrefixable, CQLSortable):
     def __init__(self, term: str, index=None, relation: CQLRelation = None):
         super().__init__()
         self.term = term
-        self.index = CQLPrefixedName(index) if index is not None else None
+        if index is not None:
+            if not isinstance(index, CQLPrefixedName):
+                index = CQLPrefixedName(index)
+        self.index = index
         if relation is not None:
             if not isinstance(relation, CQLRelation):
                 LOGGER.warning(
@@ -245,8 +319,15 @@ class CQLClause(CQLPrefixable, CQLSortable):
 
     def toCQL(self) -> str:
         if self.relation is None:
-            return f"{escape(self.term)}"
-        return f"{escape(self.index)} {self.relation.toCQL()} {escape(self.term)}"
+            sc = f"{escape(self.term)}"
+        else:
+            sc = f"{escape(self.index)} {self.relation.toCQL()} {escape(self.term)}"
+
+        p = CQLPrefixable.toCQL(self)
+        if p:
+            sc = f"{p} {sc}"
+
+        return sc
 
     def toXCQL(self) -> ET.Element:
         ele = ET.Element("searchClause")
@@ -256,8 +337,8 @@ class CQLClause(CQLPrefixable, CQLSortable):
             ele.append(ele_prefixes)
 
         if self.index is not None and self.relation is not None:
-            ele_index = ET.SubElement(ele, "index")
-            ET.SubElement(ele_index, "value").text = self.index.name
+            ET.SubElement(ele, "index").text = str(self.index)
+            # ET.SubElement(ele_index, "value").text = str(self.index)
             ele.append(self.relation.toXCQL())
         ET.SubElement(ele, "term").text = self.term
 
@@ -267,13 +348,19 @@ class CQLClause(CQLPrefixable, CQLSortable):
 
         return ele
 
+    def __str__(self) -> str:
+        return self.toCQL()
+
+    def __repr__(self) -> str:
+        return f"CQLSearchClause[{self.toCQL()}]"
+
 
 class CQLTriple(CQLPrefixable, CQLSortable):
     def __init__(
         self,
-        left: Union["CQLTriple", CQLClause],
+        left: Union["CQLTriple", CQLSearchClause],
         operator: CQLBoolean,
-        right: Union["CQLTriple", CQLClause],
+        right: Union["CQLTriple", CQLSearchClause],
     ):
         super().__init__()
         self.left = left
@@ -306,9 +393,15 @@ class CQLTriple(CQLPrefixable, CQLSortable):
 
         return ele
 
+    def __str__(self) -> str:
+        return self.toCQL()
+
+    def __repr__(self) -> str:
+        return f"CQLTriple[{self.toCQL()}]"
+
 
 class CQLQuery:
-    def __init__(self, root: Union[CQLTriple, CQLClause], version="1.2"):
+    def __init__(self, root: Union[CQLTriple, CQLSearchClause], version="1.2"):
         self.root = root
         self.version = version
 
@@ -337,7 +430,7 @@ class CQLQuery:
                 _setDefaults(obj.operator)
                 _setDefaults(obj.left)
                 _setDefaults(obj.right)
-            elif isinstance(obj, CQLClause):
+            elif isinstance(obj, CQLSearchClause):
                 if obj.index is None and obj.relation is None:
                     obj.index = CQL_DEFAULT_INDEX
                     obj.relation = CQLRelation(
@@ -349,10 +442,26 @@ class CQLQuery:
 
         _setDefaults(self.root)
 
+    def toCQL(self) -> str:
+        return self.root.toCQL()
+
     def toXCQL(self) -> ET.Element:
         ele: ET.Element = self.root.toXCQL()
         ele.attrib["xmlns"] = XCQL_NAMESPACE
         return ele
+
+    def toXCQLString(self, pretty: bool = False) -> str:
+        tree = self.toXCQL()
+
+        xmlstr = ET.tostring(tree, encoding="unicode")
+
+        if pretty:
+            # ET.indent() in Python 3.9+
+            from xml.dom import minidom
+
+            xmlstr = minidom.parseString(xmlstr).toprettyxml(indent="  ")
+
+        return xmlstr
 
 
 # ---------------------------------------------------------------------------
@@ -367,6 +476,7 @@ class CQLParser:
         self.parser: LRParser = yacc.yacc(module=self, **kwargs)
 
     def run(self, content: str, **kwargs) -> CQLQuery:
+        LOGGER.debug("Input: %s", content)
         result = self.parser.parse(content, lexer=self.lexer.lexer, **kwargs)
         return result
 
@@ -383,18 +493,36 @@ class CQLParser11(CQLParser):
 
     def p_cqlQuery(self, p: YaccProduction):
         # fmt: off
-        """cqlQuery : prefixAssignment cqlQuery
+        """cqlQuery : prefixAssignmentGroup cqlQuery
                     | scopedClause"""
         # fmt: on
         LOGGER.debug("p_cqlQuery: %s -> %s", p.slice[1:], p[1:])
         if len(p) == 3:
-            p[2].add_prefix(p[1])
+            LOGGER.debug("p_cqlQuery (assign prefix): %s <<- %s", p.slice[2], p[1])
+            for prefix in p[1]:
+                p[2].add_prefix(prefix)
             p[0] = p[2]
         else:
             p[0] = p[1]
         LOGGER.debug("stack@p_cqlQuery: %s", p.stack)
         if len(p.stack) == 1 and p.stack[0].type == "$end":
             p[0] = CQLQuery(p[0], version="1.1")
+
+    def p_prefixAssignmentGroup(self, p: YaccProduction):
+        # to have left precedence (not really according to specs? but for cql-java tests)
+        # fmt: off
+        """prefixAssignmentGroup : prefixAssignmentGroup prefixAssignment
+                                 | prefixAssignment"""
+        # fmt: on
+        LOGGER.debug("p_prefixAssignmentGroup: %s -> %r", p.slice[1:], p[1])
+        if len(p) == 2:
+            p[0] = list()
+            p[0].append(p[1])
+        else:
+            if not isinstance(p[0], list):
+                p[0] = list()
+            p[0].extend(p[1])
+            p[0].append(p[2])
 
     def p_prefixAssignment(self, p: YaccProduction):
         # fmt: off
@@ -412,7 +540,7 @@ class CQLParser11(CQLParser):
         """scopedClause : scopedClause booleanGroup searchClause
                         | searchClause"""
         # fmt: on
-        LOGGER.debug("p_scopedClause: %s", p.slice[1:])
+        LOGGER.debug("p_scopedClause: %s -> %s", p.slice[1:], p[1:])
         if len(p) == 4:
             p[0] = CQLTriple(left=p[1], operator=p[2], right=p[3])
         else:
@@ -450,9 +578,9 @@ class CQLParser11(CQLParser):
             if p.slice[1].type == "LPAREN" and p.slice[3].type == "RPAREN":
                 p[0] = p[2]
             else:
-                p[0] = CQLClause(term=p[3], relation=p[2], index=p[1])
+                p[0] = CQLSearchClause(term=p[3], relation=p[2], index=p[1])
         else:
-            p[0] = CQLClause(term=p[1])
+            p[0] = CQLSearchClause(term=p[1])
 
     def p_relation(self, p: YaccProduction):
         # fmt: off
@@ -519,18 +647,18 @@ class CQLParser11(CQLParser):
 
     def p_prefix(self, p: YaccProduction):
         """prefix : term"""
-        LOGGER.debug("p_prefix: %s -> %r", p.slice[1], p[1])
+        # LOGGER.debug("p_prefix: %s -> %r", p.slice[1], p[1])
         p[0] = p[1]
 
     def p_uri(self, p: YaccProduction):
         """uri : term"""
-        LOGGER.debug("p_uri: %s -> %r", p.slice[1], p[1])
+        # LOGGER.debug("p_uri: %s -> %r", p.slice[1], p[1])
         p[0] = p[1]
 
     def p_modifierName(self, p: YaccProduction):
         """modifierName : term"""
         LOGGER.debug("p_modifierName: %s -> %r", p.slice[1], p[1])
-        p[0] = p[1]
+        p[0] = CQLPrefixedName(p[1])
 
     def p_modifierValue(self, p: YaccProduction):
         """modifierValue : term"""
@@ -545,7 +673,7 @@ class CQLParser11(CQLParser):
     def p_index(self, p: YaccProduction):
         """index : term"""
         LOGGER.debug("p_index: %s -> %r", p.slice[1], p[1])
-        p[0] = p[1]
+        p[0] = CQLPrefixedName(p[1])
 
     def p_term(self, p: YaccProduction):
         # fmt: off
@@ -617,7 +745,7 @@ class CQLParser12(CQLParser11):
 
     def p_sortedQuery(self, p: YaccProduction):
         # fmt: off
-        """sortedQuery : prefixAssignment sortedQuery
+        """sortedQuery : prefixAssignmentGroup sortedQuery
                        | scopedClause KEY_SORTBY sortSpec
                        | scopedClause"""
         # fmt: on
@@ -626,11 +754,13 @@ class CQLParser12(CQLParser11):
             p[1].add_sortSpecs(p[3])
             p[0] = p[1]
         elif len(p) == 3:
-            p[2].add_prefix(p[1])
+            LOGGER.debug("p_sortedQuery (assign prefix): %s <<- %s", p.slice[2], p[1])
+            for prefix in p[1]:
+                p[2].add_prefix(prefix)
             p[0] = p[2]
         else:
             p[0] = p[1]
-        LOGGER.debug("stack@p_cqlQuery: %s", p.stack)
+        LOGGER.debug("stack@p_sortedQuery: %s", p.stack)
         if len(p.stack) == 1 and p.stack[0].type == "$end":
             p[0] = CQLQuery(p[0], version="1.2")
 

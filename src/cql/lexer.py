@@ -5,7 +5,6 @@ import ply.lex as lex
 from ply.lex import Lexer
 from ply.lex import LexToken
 
-
 LOGGER = logging.getLogger(__name__)
 
 
@@ -15,11 +14,11 @@ LOGGER = logging.getLogger(__name__)
 class CQLLexer:
     #: reserved names
     reserved = {
-        # r"(?i)and": "BOOL_AND",
-        # r"(?i)or": "BOOL_OR",
-        # r"(?i)not": "BOOL_NOT",
-        # r"(?i)prox": "BOOL_PROX",
-        # r"(?i)sortby": "KEY_SORTBY",
+        "and": "BOOL_AND",
+        "or": "BOOL_OR",
+        "not": "BOOL_NOT",
+        "prox": "BOOL_PROX",
+        "sortby": "KEY_SORTBY",
     }
 
     #: List of token names.
@@ -30,12 +29,10 @@ class CQLLexer:
         # modifier start
         "MODSTART",
         # term relations
-        "LT", "LE", "GT", "GE", "NE", "EQ", "EQUALS",
-        # boolean relations
-        "BOOL_AND", "BOOL_OR", "BOOL_NOT", "BOOL_PROX", "KEY_SORTBY",
+        "LE", "GE", "LT", "GT", "NE", "EQUALS", "EQ",
         # strings / identifiers
         "CHAR_STRING1", "CHAR_STRING2",
-            
+        # boolean relations
     ] + list(reserved.values())
     # fmt: on
 
@@ -46,49 +43,25 @@ class CQLLexer:
 
     t_MODSTART = r"/"
 
-    t_LT = r"<"
     t_LE = r"<="
-    t_GT = r">"
+    t_LT = r"<"
     t_GE = r">="
+    t_GT = r">"
     t_NE = r"<>"
-    t_EQ = r"="
     t_EQUALS = r"=="
-
-    # ---------------------------------------------------
-    # NOTE: required? (?i)
-
-    def t_BOOL_AND(self, tok: LexToken) -> LexToken:
-        r"and"
-        tok.value = tok.value.upper()
-        return tok
-
-    def t_BOOL_OR(self, tok: LexToken) -> LexToken:
-        r"or"
-        tok.value = tok.value.upper()
-        return tok
-
-    def t_BOOL_NOT(self, tok: LexToken) -> LexToken:
-        r"not"
-        tok.value = tok.value.upper()
-        return tok
-
-    def t_BOOL_PROX(self, tok: LexToken) -> LexToken:
-        r"prox"
-        tok.value = tok.value.upper()
-        return tok
-
-    def t_KEY_SORTBY(self, tok: LexToken) -> LexToken:
-        r"sortby"
-        tok.value = tok.value.lower()
-        return tok
+    t_EQ = r"="
 
     # ---------------------------------------------------
 
-    t_CHAR_STRING1 = r"""[^\s()=<>"/]+"""
+    def t_CHAR_STRING1(self, tok: LexToken) -> LexToken:
+        r"""[^\s()=<>"/]+"""
+        # check for keywords (as in §4.3 / https://stackoverflow.com/a/39628385/9360161)
+        tok.type = self.reserved.get(tok.value.lower(), tok.type)
+        return tok
 
     def t_CHAR_STRING2(self, tok: LexToken) -> LexToken:
-        r"""\"[^\"]*\" """
-        tok.value = tok.value.strip('"').replace('\\"', '"')
+        r'''"(?:\\"|[^"])*"'''
+        tok.value = tok.value[1:-1].replace('\\"', '"')
         return tok
 
     # ---------------------------------------------------

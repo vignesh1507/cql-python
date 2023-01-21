@@ -7,7 +7,7 @@ from cql.parser import CQLBoolean
 from cql.parser import CQLPrefix
 from cql.parser import CQLSortSpec
 from cql.parser import CQLSortable
-from cql.parser import CQLClause
+from cql.parser import CQLSearchClause
 from cql.parser import CQLTriple
 
 
@@ -103,41 +103,41 @@ def test_CQLSortable():
 
 
 def test_CQLClause():
-    obj = CQLClause("fish")
+    obj = CQLSearchClause("fish")
     assert obj.toCQL() == "fish"
 
-    obj = CQLClause("squirrels fish")
+    obj = CQLSearchClause("squirrels fish")
     assert obj.toCQL() == '"squirrels fish"'
 
-    obj = CQLClause("")
+    obj = CQLSearchClause("")
     assert obj.toCQL() == '""'
 
-    obj = CQLClause("fish", "title", CQLRelation("any"))
+    obj = CQLSearchClause("fish", "title", CQLRelation("any"))
     assert obj.toCQL() == "title any fish"
 
-    obj = CQLClause("fish", "dc.title", CQLRelation("any"))
+    obj = CQLSearchClause("fish", "dc.title", CQLRelation("any"))
     assert obj.toCQL() == "dc.title any fish"
 
-    obj = CQLClause("fish", "title", relation="any")
+    obj = CQLSearchClause("fish", "title", relation="any")
     assert isinstance(obj.relation, CQLRelation)
     assert obj.toCQL() == "title any fish"
 
 
 def test_CQLTriple():
     obj = CQLTriple(
-        left=CQLClause("fish", "dc.title", CQLRelation("any")),
+        left=CQLSearchClause("fish", "dc.title", CQLRelation("any")),
         operator=CQLBoolean("or"),
-        right=CQLClause("sanderson", "dc.creator", CQLRelation("any")),
+        right=CQLSearchClause("sanderson", "dc.creator", CQLRelation("any")),
     )
     assert obj.toCQL() == "dc.title any fish or dc.creator any sanderson"
 
     obj = CQLTriple(
-        left=CQLClause("fish", "dc.title", CQLRelation("any")),
+        left=CQLSearchClause("fish", "dc.title", CQLRelation("any")),
         operator=CQLBoolean("or"),
         right=CQLTriple(
-            left=CQLClause("sanderson", "dc.creator", CQLRelation("any")),
+            left=CQLSearchClause("sanderson", "dc.creator", CQLRelation("any")),
             operator=CQLBoolean("and"),
-            right=CQLClause("id:1234567", "dc.identifier", CQLRelation("=")),
+            right=CQLSearchClause("id:1234567", "dc.identifier", CQLRelation("=")),
         ),
     )
     assert (

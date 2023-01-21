@@ -1,0 +1,11 @@
+{
+    "python.formatting.provider": "black",
+    "python.testing.pytestArgs": [
+        // disable coverage for debuggin
+        "--no-cov",
+        // disable ansi color output (-vv)
+        "-q",
+    ],
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestEnabled": true
+}
