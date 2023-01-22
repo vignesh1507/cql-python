@@ -70,8 +70,10 @@ pytest
 
 Run style checks:
 ```bash
-flake8
-isort --diff src tests
+python3 -m pip install -e .[style]
+black --check .
+flake8 . --show-source --statistics
+isort --check --diff .
 
 # building the package:
 python3 -m pip install -e .[build]
