@@ -1,5 +1,6 @@
 import logging
 import xml.etree.ElementTree as ET
+from itertools import groupby
 from typing import List
 from typing import Optional
 from typing import Union
@@ -43,7 +44,7 @@ def escape(val: str) -> str:
 # ---------------------------------------------------------------------------
 
 
-class CQLParseError(Exception):
+class CQLParserError(Exception):
     pass
 
 
@@ -83,13 +84,13 @@ class CQLPrefixedName:
 # ---------------------------------------------------------------------------
 
 
-class CQLModifier:
+class CQLModifier:  # XCQL: modifier
     def __init__(self, name: str, comparitor: str = None, value: str = None):
         self.name = (
             CQLPrefixedName(name) if not isinstance(name, CQLPrefixedName) else name
-        )
-        self.comparitor = comparitor
-        self.value = value
+        )  # XCQL: type
+        self.comparitor = comparitor  # XCQL: comparison
+        self.value = value  # XCQL: value
         # TODO: check prefix splitting
 
     def toCQL(self) -> str:
@@ -112,9 +113,9 @@ class CQLModifier:
         return f"CQLModifier[{self.toCQL()}]"
 
 
-class CQLModifierable:
+class CQLModifierable:  # XCQL: modifiers
     def __init__(self, modifiers: List[CQLModifier] = None):
-        self.modifiers = modifiers
+        self.modifiers = modifiers  # XCQL: [modifier]
 
     def toCQL(self) -> str:
         if not self.modifiers:
@@ -137,10 +138,10 @@ class CQLModifierable:
         return f"CQLModifierable[{self.toCQL()}]"
 
 
-class CQLPrefix:
+class CQLPrefix:  # XCQL: prefix
     def __init__(self, uri: str, prefix: str = None):
-        self.prefix = prefix
-        self.uri = uri
+        self.prefix = prefix  # XCQL: name
+        self.uri = uri  # XCQL: identifier
 
     def toCQL(self) -> str:
         if self.prefix is None:
@@ -161,10 +162,10 @@ class CQLPrefix:
         return f"CQLPrefix[{self.toCQL()}]"
 
 
-class CQLPrefixable:
+class CQLPrefixable:  # XCQL: prefixes
     def __init__(self):
         super().__init__()
-        self.prefixes: List[CQLPrefix] = list()
+        self.prefixes: List[CQLPrefix] = list()  # XCQL: [prefix]
 
     def add_prefix(self, prefix: CQLPrefix):
         self.prefixes.append(prefix)
@@ -189,12 +190,12 @@ class CQLPrefixable:
         return f"CQLPrefixable[{self.toCQL()}]"
 
 
-class CQLSortSpec(CQLModifierable):
+class CQLSortSpec(CQLModifierable):  # XCQL: key
     def __init__(self, index: str, modifiers: List[str] = None):
-        super().__init__(modifiers)
+        super().__init__(modifiers)  # XCQL: modifiers
         self.index = (
             CQLPrefixedName(index) if not isinstance(index, CQLPrefixedName) else index
-        )
+        )  # XCQL: index
 
     def toCQL(self):
         return f"sortBy {escape(self.index)}{CQLModifierable.toCQL(self)}"
@@ -214,10 +215,10 @@ class CQLSortSpec(CQLModifierable):
         return f"CQLSortSpec[{self.toCQL()}]"
 
 
-class CQLSortable:
+class CQLSortable:  # XCQL: sortKeys
     def __init__(self):
         super().__init__()
-        self.sortSpecs: List[CQLSortSpec] = list()
+        self.sortSpecs: List[CQLSortSpec] = list()  # XCQL: [key]
 
     def add_sortSpecs(self, sortSpecs: List[CQLSortSpec]):
         self.sortSpecs = sortSpecs
@@ -250,14 +251,14 @@ class CQLSortable:
 # ---------------------------------------------------------------------------
 
 
-class CQLRelation(CQLModifierable):
+class CQLRelation(CQLModifierable):  # XCQL: relation
     def __init__(self, comparitor: str, modifiers: List[CQLModifier] = None):
-        super().__init__(modifiers)
+        super().__init__(modifiers)  # XCQL: modifiers
         self.comparitor = (
             CQLPrefixedName(comparitor)
             if not isinstance(comparitor, CQLPrefixedName)
             else comparitor
-        )
+        )  # XCQL: value
 
     def toCQL(self) -> str:
         return f"{self.comparitor}{CQLModifierable.toCQL(self)}"
@@ -278,10 +279,10 @@ class CQLRelation(CQLModifierable):
         return self.toCQL()
 
 
-class CQLBoolean(CQLModifierable):
+class CQLBoolean(CQLModifierable):  # XCQL: boolean
     def __init__(self, value: str, modifiers: List[str] = None):
-        super().__init__(modifiers)
-        self.value = value
+        super().__init__(modifiers)  # XCQL: modifiers
+        self.value = value  # XCQL: value
 
     def toCQL(self) -> str:
         return f"{self.value}{CQLModifierable.toCQL(self)}"
@@ -301,21 +302,21 @@ class CQLBoolean(CQLModifierable):
         return f"CQLBoolean[{self.toCQL()}]"
 
 
-class CQLSearchClause(CQLPrefixable, CQLSortable):
+class CQLSearchClause(CQLPrefixable, CQLSortable):  # XCQL: searchClause
     def __init__(self, term: str, index=None, relation: CQLRelation = None):
-        super().__init__()
-        self.term = term
+        super().__init__()  # XCQL: prefixes / sortKeys
+        self.term = term  # XCQL: term
         if index is not None:
             if not isinstance(index, CQLPrefixedName):
                 index = CQLPrefixedName(index)
-        self.index = index
+        self.index = index  # XCQL: index
         if relation is not None:
             if not isinstance(relation, CQLRelation):
                 LOGGER.warning(
                     "Parameter 'relation' is plain string instead of CQLRelation!"
                 )
                 relation = CQLRelation(relation)
-        self.relation = relation
+        self.relation = relation  # XCQL: relation
 
     def toCQL(self) -> str:
         if self.relation is None:
@@ -355,17 +356,17 @@ class CQLSearchClause(CQLPrefixable, CQLSortable):
         return f"CQLSearchClause[{self.toCQL()}]"
 
 
-class CQLTriple(CQLPrefixable, CQLSortable):
+class CQLTriple(CQLPrefixable, CQLSortable):  # XCQL: triple
     def __init__(
         self,
         left: Union["CQLTriple", CQLSearchClause],
         operator: CQLBoolean,
         right: Union["CQLTriple", CQLSearchClause],
     ):
-        super().__init__()
-        self.left = left
-        self.operator = operator
-        self.right = right
+        super().__init__()  # XCQL: prefixes / sortKeys
+        self.left = left  # XCQL: leftOperand
+        self.operator = operator  # XCQL: boolean
+        self.right = right  # XCQL: rightOperand
 
     def toCQL(self) -> str:
         left = self.left.toCQL()
@@ -400,9 +401,9 @@ class CQLTriple(CQLPrefixable, CQLSortable):
         return f"CQLTriple[{self.toCQL()}]"
 
 
-class CQLQuery:
+class CQLQuery:  # XCQL: triple | searchClause
     def __init__(self, root: Union[CQLTriple, CQLSearchClause], version="1.2"):
-        self.root = root
+        self.root = root  # XCQL: triple | searchClause
         self.version = version
 
     def setServerDefaults(self, addCQLPrefixes: bool = False, serverPrefix: str = None):
@@ -468,6 +469,11 @@ class CQLQuery:
 
 
 class CQLParser:
+
+    tokens = CQLLexer.tokens
+
+    # ---------------------------------------------------
+
     def build(self, lexer: Lexer, **kwargs) -> None:
         if lexer is None:
             lexer = CQLLexer()
@@ -475,10 +481,64 @@ class CQLParser:
         self.lexer: Lexer = lexer
         self.parser: LRParser = yacc.yacc(module=self, **kwargs)
 
-    def run(self, content: str, **kwargs) -> CQLQuery:
+    def parse(self, content: str, **kwargs) -> CQLQuery:
         LOGGER.debug("Input: %s", content)
         result = self.parser.parse(content, lexer=self.lexer.lexer, **kwargs)
         return result
+
+    # ---------------------------------------------------
+
+    def p_error(self, p: YaccProduction):
+        LOGGER.error("Parser stack: %s. Token: %s", self.parser.symstack[1:], p)
+
+        if p is None:
+            # missing symbols
+            LOGGER.error(
+                "Syntex error: EOF / no symbols left. Parser stack: %s",
+                self.parser.symstack,
+            )
+
+            raise CQLParserError("Syntex error: EOF / no symbols left!")
+
+        LOGGER.error(
+            "Syntex error: [lno:%d,col:%d]: %s",
+            p.lineno,
+            self.lexer.find_column(p),
+            p,
+        )
+        LOGGER.error(
+            "Found symbol: %s. Expected any of: %s",
+            p.type,
+            ", ".join(self.parser.action[self.parser.state].keys()),
+        )
+
+        # only if last symbol/token has no options -> check from previous
+        # listing rules/productions that the currently wrong token could have taken if it were correct
+        if not self.parser.goto[self.parser.statestack[-1]]:
+            prev_state = self.parser.statestack[-2]
+            LOGGER.debug(
+                "Possible next reductions for (invalid token) %r if symbol %r were to be reduced to symbol:",
+                p,
+                self.parser.symstack[-1],
+            )
+            for action, next_state in self.parser.goto[prev_state].items():
+                LOGGER.debug("  -> %s:", action)
+                for prod_idx, actions in groupby(
+                    sorted(self.parser.action[next_state].items(), key=lambda x: x[1]),
+                    key=lambda x: x[1],
+                ):
+                    next_prod = self.parser.productions[-prod_idx]
+                    # LOGGER.debug("     ~ from symbol: %s", next_prod.usyms)
+                    symbols = [s[0] for s in actions]
+                    LOGGER.debug(
+                        "     - production '%s' with symbols %s",
+                        next_prod,
+                        ", ".join(symbols),
+                    )
+
+        raise CQLParserError(
+            f"Found symbol {p.type!r}. Expected any of: {', '.join(self.parser.action[self.parser.state].keys())}"
+        )
 
 
 # ---------------------------------------------------------------------------
@@ -486,8 +546,6 @@ class CQLParser:
 
 class CQLParser11(CQLParser):
     start = "cqlQuery"
-
-    tokens = CQLLexer.tokens
 
     # ---------------------------------------------------
 
@@ -559,10 +617,10 @@ class CQLParser11(CQLParser):
 
     def p_boolean(self, p: YaccProduction):
         # fmt: off
-        """boolean : BOOL_AND
-                   | BOOL_OR
-                   | BOOL_NOT
-                   | BOOL_PROX"""
+        """boolean : AND
+                   | OR
+                   | NOT
+                   | PROX"""
         # fmt: om
         LOGGER.debug("p_boolean: %s", p.slice[1])
         p[0] = p[1]
@@ -678,11 +736,11 @@ class CQLParser11(CQLParser):
     def p_term(self, p: YaccProduction):
         # fmt: off
         """term : identifier
-                | BOOL_AND
-                | BOOL_OR
-                | BOOL_NOT
-                | BOOL_PROX
-                | KEY_SORTBY"""
+                | AND
+                | OR
+                | NOT
+                | PROX
+                | SORTBY"""
         # fmt: on
         LOGGER.debug("p_term: %s -> %r", p.slice[1], p[1])
         p[0] = p[1]
@@ -696,20 +754,20 @@ class CQLParser11(CQLParser):
         p[0] = p[1]
 
     def p_error(self, p: YaccProduction):
-        LOGGER.error("Parser stack: %s + %s", self.parser.symstack, p)
-
         if len(self.parser.symstack) >= 3:
+            # missing right side
             if (
                 isinstance(self.parser.symstack[-2], YaccSymbol)
                 and self.parser.symstack[-2].type in ("scopedClause",)
                 and isinstance(self.parser.symstack[-1], LexToken)
-                and self.parser.symstack[-1].type
-                in ("BOOL_AND", "BOOL_OR", "BOOL_NOT", "BOOL_PROX")
+                and self.parser.symstack[-1].type in ("AND", "OR", "NOT", "PROX")
             ):
-                raise CQLParseError(
+                raise CQLParserError(
                     f"Missing right side for scopedClause at position {self.lexer.lexer.lexpos}."
                 )
 
+            # missing closing paranthesis
+            # TODO: general check whether LPAREN on stack or found remaining RPAREN?
             if (
                 isinstance(self.parser.symstack[-2], LexToken)
                 and self.parser.symstack[-2].type == "LPAREN"
@@ -717,22 +775,22 @@ class CQLParser11(CQLParser):
                 and self.parser.symstack[-1].type
                 in ("scopedClause", "cqlQuery", "term")
             ):
-                raise CQLParseError(
+                raise CQLParserError(
                     f"Missing closing paranthesis at position {self.lexer.lexer.lexpos}."
                 )
 
-            # TODO: general check whether LPAREN on stack or found remaining RPAREN?
+        if p is not None:
+            # missing opening paranthesis (any other cases possible here?)
+            # check for end symbol ($end) which should mean, query could have been completed
+            if (
+                p.type == "RPAREN"
+                and "$end" in self.parser.action[self.parser.state].keys()
+            ):
+                raise CQLParserError(
+                    f"Missing opening paranthesis / superfluous closing paranthesis at {self.lexer.lexer.lexpos}."
+                )
 
-        if p is None:
-            # missing symbols
-            LOGGER.error(
-                "Syntex error: EOF / no symbols left. Parser stack: %s",
-                self.parser.symstack,
-            )
-        else:
-            LOGGER.error("Syntex error: [lno:%d]: %s", p.lineno, p)
-
-        raise CQLParseError("Parser error")
+        super().p_error(p)
 
 
 # ---------------------------------------------------------------------------
@@ -746,7 +804,7 @@ class CQLParser12(CQLParser11):
     def p_sortedQuery(self, p: YaccProduction):
         # fmt: off
         """sortedQuery : prefixAssignmentGroup sortedQuery
-                       | scopedClause KEY_SORTBY sortSpec
+                       | scopedClause SORTBY sortSpec
                        | scopedClause"""
         # fmt: on
         LOGGER.debug("p_sortedQuery: %s -> %s", p.slice[1:], p[1:])
@@ -792,18 +850,19 @@ class CQLParser12(CQLParser11):
 
     def p_error(self, p: YaccProduction):
         if len(self.parser.symstack) >= 3:
+            # missing sort key
             if (
                 isinstance(self.parser.symstack[-2], YaccSymbol)
                 and self.parser.symstack[-2].type == "scopedClause"
                 and isinstance(self.parser.symstack[-1], LexToken)
-                and self.parser.symstack[-1].type == "KEY_SORTBY"
+                and self.parser.symstack[-1].type == "SORTBY"
             ):
                 if p is None:
-                    raise CQLParseError(
+                    raise CQLParserError(
                         f"No sort key supplied at position {self.lexer.lexer.lexpos}. Unexpected end of input."
                     )
                 else:
-                    raise CQLParseError(
+                    raise CQLParserError(
                         f"No sort key supplied at position {self.lexer.lexer.lexpos}. Found {p} symbol."
                     )
 

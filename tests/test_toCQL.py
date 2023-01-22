@@ -1,15 +1,14 @@
 import pytest
 
-from cql.parser import escape
-from cql.parser import CQLModifier
-from cql.parser import CQLRelation
 from cql.parser import CQLBoolean
+from cql.parser import CQLModifier
 from cql.parser import CQLPrefix
-from cql.parser import CQLSortSpec
-from cql.parser import CQLSortable
+from cql.parser import CQLRelation
 from cql.parser import CQLSearchClause
+from cql.parser import CQLSortable
+from cql.parser import CQLSortSpec
 from cql.parser import CQLTriple
-
+from cql.parser import escape
 
 # ---------------------------------------------------------------------------
 

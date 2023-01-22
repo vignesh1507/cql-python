@@ -11,14 +11,21 @@ LOGGER = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 
+class CQLLexerError(Exception):
+    pass
+
+
+# ---------------------------------------------------------------------------
+
+
 class CQLLexer:
     #: reserved names
     reserved = {
-        "and": "BOOL_AND",
-        "or": "BOOL_OR",
-        "not": "BOOL_NOT",
-        "prox": "BOOL_PROX",
-        "sortby": "KEY_SORTBY",
+        "and": "AND",
+        "or": "OR",
+        "not": "NOT",
+        "prox": "PROX",
+        "sortby": "SORTBY",
     }
 
     #: List of token names.
@@ -71,17 +78,18 @@ class CQLLexer:
 
     def t_ignore_newline(self, tok: LexToken):
         r"\n+"
+        # NOTE: not sure if required
         tok.lexer.lineno += tok.value.count("\n")
 
     #: Error handling rule
     def t_error(self, tok: LexToken) -> None:
-        LOGGER.warning("Illegal character '%s'", tok.value[0])
-        # TODO: raise Exception? We want to be strict.
-        tok.lexer.skip(1)
+        LOGGER.error("Illegal character '%s' at %s", tok.value[0], tok.lexpos)
+        raise CQLLexerError(f"Illegal character {tok.value[0]!r} at {tok.lexpos}", tok)
 
     # ---------------------------------------------------
 
-    def find_column(input, token):
+    def find_column(self, token):
+        input = self.lexer.lexdata
         line_start = input.rfind("\n", 0, token.lexpos) + 1
         return (token.lexpos - line_start) + 1
 

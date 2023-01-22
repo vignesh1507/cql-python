@@ -3,15 +3,14 @@ import os.path
 import xml.etree.ElementTree as ET
 from itertools import chain
 from itertools import repeat
-from xml.dom import minidom
 from typing import Tuple
+from xml.dom import minidom
 
 import pytest
 
-from cql.parser import CQLParseError
 from cql.parser import CQLParser
+from cql.parser import CQLParserError
 from cql.parser import CQLQuery
-
 
 # ---------------------------------------------------------------------------
 
@@ -86,37 +85,37 @@ def test_cql2xcql(parser: CQLParser, type: str, id: str):
 
     elif id in ("08/02", "09/04"):
         # do not add server default
-        parsed: CQLQuery = parser.run(cql)
+        parsed: CQLQuery = parser.parse(cql)
         xml = parsed.toXCQL()
         assert xmlstr(xml) == xcql
     elif id in ("09/03",):
         # our pretty print lib does collapse empty elements
-        parsed: CQLQuery = parser.run(cql)
+        parsed: CQLQuery = parser.parse(cql)
         parsed.setServerDefaults()
         xml = parsed.toXCQL()
         assert xmlstr(xml).replace("<term/>", "<term></term>") == xcql
     elif id in ("06/06", "06/03"):
         # our pretty print lib does escape some strings ...
-        parsed: CQLQuery = parser.run(cql)
+        parsed: CQLQuery = parser.parse(cql)
         parsed.setServerDefaults()
         xml = parsed.toXCQL()
         assert xmlstr(xml).replace("&quot;", '"') == xcql
 
     elif type == "FAILURES":
         parsed: CQLQuery = None
-        with pytest.raises(CQLParseError) as exc_info:
-            parsed = parser.run(cql)
+        with pytest.raises(CQLParserError) as exc_info:
+            parsed = parser.parse(cql)
         assert parsed is None
     elif type == "Sorting" or id in ("05/08",):
         # NOTE: ignore some case folding which we do not automatically
         # is not required / most stuff is case-insensitive (so no changes by us for now)
-        parsed: CQLQuery = parser.run(cql)
+        parsed: CQLQuery = parser.parse(cql)
         parsed.setServerDefaults()
         xml = parsed.toXCQL()
         assert xmlstr(xml).lower() == xcql.lower()
 
     else:
-        parsed: CQLQuery = parser.run(cql)
+        parsed: CQLQuery = parser.parse(cql)
         parsed.setServerDefaults()
         xml = parsed.toXCQL()
         assert xmlstr(xml) == xcql

@@ -3,19 +3,18 @@ http://www.loc.gov/standards/sru/cql/spec.html"""
 
 import pytest
 
-from cql.parser import CQLParser
 from cql.parser import CQLBoolean
 from cql.parser import CQLModifier
-from cql.parser import CQLTriple
-from cql.parser import CQLSearchClause
+from cql.parser import CQLParser
+from cql.parser import CQLParserError
 from cql.parser import CQLPrefix
 from cql.parser import CQLPrefixable
+from cql.parser import CQLPrefixedName
 from cql.parser import CQLQuery
+from cql.parser import CQLSearchClause
 from cql.parser import CQLSortable
 from cql.parser import CQLSortSpec
-from cql.parser import CQLParseError
-from cql.parser import CQLPrefixedName
-
+from cql.parser import CQLTriple
 
 # ---------------------------------------------------------------------------
 
@@ -49,7 +48,7 @@ def test_CQLPrefixedName():
 
 def test_parser_CQLQuery(parser: CQLParser):
     query = "dc.title any fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"
@@ -58,7 +57,7 @@ def test_parser_CQLQuery(parser: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "dc.title any fish or dc.creator any sanderson"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLTriple)
 
@@ -84,7 +83,7 @@ def test_parser_CQLQuery(parser: CQLParser):
     assert right.relation.modifiers is None
 
     query = "dc.title any fish sortBy dc.date/sort.ascending"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert isinstance(parsed.root, CQLSortable)
@@ -108,7 +107,7 @@ def test_parser_CQLQuery(parser: CQLParser):
     assert modifier.name.prefix == "sort"
 
     query = '> dc = "info:srw/context-sets/1/dc-v1.1" dc.title any fish'
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert isinstance(parsed.root, CQLPrefixable)
@@ -127,7 +126,7 @@ def test_parser_CQLQuery(parser: CQLParser):
 
 def test_parser_SearchClause(parser: CQLParser):
     query = "dc.title any fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"
@@ -136,7 +135,7 @@ def test_parser_SearchClause(parser: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -144,7 +143,7 @@ def test_parser_SearchClause(parser: CQLParser):
     assert parsed.root.relation is None
 
     query = "fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed.version == "1.2"
     parsed.setServerDefaults()
     assert parsed.root.index == "cql.serverChoice"
@@ -152,7 +151,7 @@ def test_parser_SearchClause(parser: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     parsed.version = "1.1"
     parsed.setServerDefaults()
     assert parsed.root.index == "cql.serverChoice"
@@ -160,7 +159,7 @@ def test_parser_SearchClause(parser: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "cql.serverChoice = fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -171,7 +170,7 @@ def test_parser_SearchClause(parser: CQLParser):
 
 def test_parser_SearchClause11(parser11: CQLParser):
     query = "dc.title any fish"
-    parsed: CQLQuery = parser11.run(query)
+    parsed: CQLQuery = parser11.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"
@@ -180,7 +179,7 @@ def test_parser_SearchClause11(parser11: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "fish"
-    parsed: CQLQuery = parser11.run(query)
+    parsed: CQLQuery = parser11.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -188,7 +187,7 @@ def test_parser_SearchClause11(parser11: CQLParser):
     assert parsed.root.relation is None
 
     query = "fish"
-    parsed: CQLQuery = parser11.run(query)
+    parsed: CQLQuery = parser11.parse(query)
     assert parsed.version != "1.2"
     parsed.version = "1.2"
     parsed.setServerDefaults()
@@ -197,7 +196,7 @@ def test_parser_SearchClause11(parser11: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "fish"
-    parsed: CQLQuery = parser11.run(query)
+    parsed: CQLQuery = parser11.parse(query)
     assert parsed.version == "1.1"
     parsed.setServerDefaults()
     assert parsed.root.index == "cql.serverChoice"
@@ -205,7 +204,7 @@ def test_parser_SearchClause11(parser11: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "cql.serverChoice = fish"
-    parsed: CQLQuery = parser11.run(query)
+    parsed: CQLQuery = parser11.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -216,7 +215,7 @@ def test_parser_SearchClause11(parser11: CQLParser):
 
 def test_parser_SearchClause12(parser12: CQLParser):
     query = "dc.title any fish"
-    parsed: CQLQuery = parser12.run(query)
+    parsed: CQLQuery = parser12.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"
@@ -225,7 +224,7 @@ def test_parser_SearchClause12(parser12: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "fish"
-    parsed: CQLQuery = parser12.run(query)
+    parsed: CQLQuery = parser12.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -233,7 +232,7 @@ def test_parser_SearchClause12(parser12: CQLParser):
     assert parsed.root.relation is None
 
     query = "fish"
-    parsed: CQLQuery = parser12.run(query)
+    parsed: CQLQuery = parser12.parse(query)
     assert parsed.version == "1.2"
     parsed.setServerDefaults()
     assert parsed.root.index == "cql.serverChoice"
@@ -241,7 +240,7 @@ def test_parser_SearchClause12(parser12: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "fish"
-    parsed: CQLQuery = parser12.run(query)
+    parsed: CQLQuery = parser12.parse(query)
     assert parsed.version != "1.1"
     parsed.version = "1.1"
     parsed.setServerDefaults()
@@ -250,7 +249,7 @@ def test_parser_SearchClause12(parser12: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "cql.serverChoice = fish"
-    parsed: CQLQuery = parser12.run(query)
+    parsed: CQLQuery = parser12.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -261,34 +260,34 @@ def test_parser_SearchClause12(parser12: CQLParser):
 
 def test_parser_SearchTerm(parser: CQLParser):
     query = '"fish"'
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
 
     query = "fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
 
     query = '"squirrels fish"'
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "squirrels fish"
 
     query = '""'
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == ""
 
 
 def test_parser_IndexName(parser: CQLParser):
     query = "title any fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert isinstance(parsed.root.index, CQLPrefixedName)
     assert parsed.root.index == "title"
 
     query = "dc.title any fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert isinstance(parsed.root.index, CQLPrefixedName)
     assert parsed.root.index == "dc.title"
     assert parsed.root.index.prefix == "dc"
@@ -298,7 +297,7 @@ def test_parser_IndexName(parser: CQLParser):
 
 def test_parser_Relation(parser: CQLParser):
     query = "dc.title any fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"
@@ -308,7 +307,7 @@ def test_parser_Relation(parser: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "dc.title cql.any fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"
@@ -320,7 +319,7 @@ def test_parser_Relation(parser: CQLParser):
 
 def test_parser_RelationModifiers(parser: CQLParser):
     query = "dc.title any/relevant fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"
@@ -334,7 +333,7 @@ def test_parser_RelationModifiers(parser: CQLParser):
     assert modifier.comparitor is None
 
     query = "dc.title any/ relevant /cql.string fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"
@@ -352,7 +351,7 @@ def test_parser_RelationModifiers(parser: CQLParser):
     assert modifier.comparitor is None
 
     query = "dc.title any/rel.algorithm=cori fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"
@@ -368,7 +367,7 @@ def test_parser_RelationModifiers(parser: CQLParser):
 
 def test_parser_BooleanOperators(parser: CQLParser):
     query = "dc.title any fish or dc.creator any sanderson"
-    parsed: CQLTriple = parser.run(query)
+    parsed: CQLTriple = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLTriple)
     left: CQLSearchClause = parsed.root.left
@@ -387,7 +386,7 @@ def test_parser_BooleanOperators(parser: CQLParser):
     assert bool_op.modifiers is None
 
     query = 'dc.title any fish or (dc.creator any sanderson and dc.identifier = "id:1234567")'
-    parsed: CQLTriple = parser.run(query)
+    parsed: CQLTriple = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLTriple)
     left: CQLSearchClause = parsed.root.left
@@ -420,7 +419,7 @@ def test_parser_BooleanOperators(parser: CQLParser):
 
 def test_parser_BooleanModifiers(parser: CQLParser):
     query = "dc.title any fish or/rel.combine=sum dc.creator any sanderson"
-    parsed: CQLTriple = parser.run(query)
+    parsed: CQLTriple = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLTriple)
     left: CQLSearchClause = parsed.root.left
@@ -443,7 +442,7 @@ def test_parser_BooleanModifiers(parser: CQLParser):
     assert modifier.value == "sum"
 
     query = "dc.title any fish prox/unit=word/distance>3 dc.title any squirrel"
-    parsed: CQLTriple = parser.run(query)
+    parsed: CQLTriple = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLTriple)
     left: CQLSearchClause = parsed.root.left
@@ -472,7 +471,7 @@ def test_parser_BooleanModifiers(parser: CQLParser):
 
 def test_parser_Sorting(parser: CQLParser):
     query = '"cat" sortBy dc.title'
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "cat"
@@ -482,7 +481,7 @@ def test_parser_Sorting(parser: CQLParser):
     assert sortKey.modifiers is None
 
     query = '"dinosaur" sortBy dc.date/sort.descending dc.title/sort.ascending'
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "dinosaur"
@@ -501,7 +500,7 @@ def test_parser_Sorting(parser: CQLParser):
 
 def test_parser_PrefixAssignment(parser: CQLParser):
     query = """> dc = "http://deepcustard.org/" dc.custardDepth > 10"""
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.custardDepth"
@@ -514,7 +513,7 @@ def test_parser_PrefixAssignment(parser: CQLParser):
     assert prefix.uri == "http://deepcustard.org/"
 
     query = """> "http://deepcustard.org/" custardDepth > 10 """
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "custardDepth"
@@ -532,7 +531,7 @@ def test_parser_PrefixAssignment(parser: CQLParser):
 
 def test_parser_CaseInsensitive(parser11: CQLParser):
     query = "dC.tiTlE any fish"
-    parsed: CQLSearchClause = parser11.run(query)
+    parsed: CQLSearchClause = parser11.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -542,13 +541,13 @@ def test_parser_CaseInsensitive(parser11: CQLParser):
 
     # NOTE: not supported sortby
     query = "dc.TitlE Any/rEl.algOriThm=cori fish soRtbY Dc.TitlE "
-    with pytest.raises(CQLParseError):
-        parser11.run(query)
+    with pytest.raises(CQLParserError):
+        parser11.parse(query)
 
 
 def test_parser_CaseInsensitive2(parser12: CQLParser):
     query = "dC.tiTlE any fish"
-    parsed: CQLSearchClause = parser12.run(query)
+    parsed: CQLSearchClause = parser12.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -557,7 +556,7 @@ def test_parser_CaseInsensitive2(parser12: CQLParser):
     assert parsed.root.index == "dC.tiTlE"
 
     query = "dc.TitlE Any/rEl.algOriThm=cori fish soRtbY Dc.TitlE "
-    parsed: CQLSearchClause = parser12.run(query)
+    parsed: CQLSearchClause = parser12.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -579,7 +578,7 @@ def test_parser_CaseInsensitive2(parser12: CQLParser):
 
 def test_parser_SearchTerm_full(parser: CQLParser):
     query = '"fish"'
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -587,7 +586,7 @@ def test_parser_SearchTerm_full(parser: CQLParser):
     assert parsed.root.relation is None
 
     query = "fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "fish"
@@ -595,7 +594,7 @@ def test_parser_SearchTerm_full(parser: CQLParser):
     assert parsed.root.relation is None
 
     query = '"squirrels fish"'
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == "squirrels fish"
@@ -603,7 +602,7 @@ def test_parser_SearchTerm_full(parser: CQLParser):
     assert parsed.root.relation is None
 
     query = '""'
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.term == ""
@@ -613,7 +612,7 @@ def test_parser_SearchTerm_full(parser: CQLParser):
 
 def test_parser_IndexName_full(parser: CQLParser):
     query = "title any fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "title"
@@ -625,7 +624,7 @@ def test_parser_IndexName_full(parser: CQLParser):
     assert parsed.root.relation.modifiers is None
 
     query = "dc.title any fish"
-    parsed: CQLQuery = parser.run(query)
+    parsed: CQLQuery = parser.parse(query)
     assert parsed is not None
     assert isinstance(parsed.root, CQLSearchClause)
     assert parsed.root.index == "dc.title"

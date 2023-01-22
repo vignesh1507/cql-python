@@ -11,11 +11,13 @@ def parse(
     query: str, debug: bool = False, debug_parser: bool = False
 ) -> Optional[CQLQuery]:
     if debug:
+        # to print initial state
         kwargs_lexer = dict(debug=True, debuglog=logging.getLogger("CQLLexer"))
     else:
         kwargs_lexer = dict()
 
     if debug_parser:
+        # to print initial state and really verbose parsing stuff
         kwargs_parser = dict(debug=True, debuglog=logging.getLogger("CQLParser"))
         kwargs_parser_run = dict(tracking=True)
     else:
@@ -28,4 +30,4 @@ def parse(
     cqlparser = CQLParser12()
     cqlparser.build(cqllexer, **kwargs_parser)
 
-    return cqlparser.run(query, **kwargs_parser_run)
+    return cqlparser.parse(query, **kwargs_parser_run)
