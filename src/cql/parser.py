@@ -766,7 +766,7 @@ class CQLParser11(CQLParser):
                     f"Missing right side for scopedClause at position {self.lexer.lexer.lexpos}."
                 )
 
-            # missing closing paranthesis
+            # missing closing parenthesis
             # TODO: general check whether LPAREN on stack or found remaining RPAREN?
             if (
                 isinstance(self.parser.symstack[-2], LexToken)
@@ -776,18 +776,18 @@ class CQLParser11(CQLParser):
                 in ("scopedClause", "cqlQuery", "term")
             ):
                 raise CQLParserError(
-                    f"Missing closing paranthesis at position {self.lexer.lexer.lexpos}."
+                    f"Missing closing parenthesis at position {self.lexer.lexer.lexpos}."
                 )
 
         if p is not None:
-            # missing opening paranthesis (any other cases possible here?)
+            # missing opening parenthesis (any other cases possible here?)
             # check for end symbol ($end) which should mean, query could have been completed
             if (
                 p.type == "RPAREN"
                 and "$end" in self.parser.action[self.parser.state].keys()
             ):
                 raise CQLParserError(
-                    f"Missing opening paranthesis / superfluous closing paranthesis at {self.lexer.lexer.lexpos}."
+                    f"Missing opening parenthesis / superfluous closing parenthesis at {self.lexer.lexer.lexpos}."
                 )
 
         super().p_error(p)

@@ -6,28 +6,28 @@ from cql.parser import CQLParserError
 # ---------------------------------------------------------------------------
 
 
-def test_parser_paranthesis(parser: CQLParser):
+def test_parser_parenthesis(parser: CQLParser):
     query = "( apple"
     with pytest.raises(
-        CQLParserError, match=r"Missing closing paranthesis at position"
+        CQLParserError, match=r"Missing closing parenthesis at position"
     ) as exc_info:
         parser.parse(query)
 
     query = "( apple OR banana"
     with pytest.raises(
-        CQLParserError, match=r"Missing closing paranthesis at position"
+        CQLParserError, match=r"Missing closing parenthesis at position"
     ) as exc_info:
         parser.parse(query)
 
     query = "( apple = 2"
     with pytest.raises(
-        CQLParserError, match=r"Missing closing paranthesis at position"
+        CQLParserError, match=r"Missing closing parenthesis at position"
     ) as exc_info:
         parser.parse(query)
 
     query = "( apple = 2 sortby key"
     # with pytest.raises(
-    #     CQLParseError, match=r"Missing closing paranthesis at position"
+    #     CQLParseError, match=r"Missing closing parenthesis at position"
     # ) as exc_info:
     #     parser.run(query)
 
