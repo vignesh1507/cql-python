@@ -2,6 +2,12 @@
 
 * [Grammar and Specification](http://www.loc.gov/standards/sru/cql/spec.html)
 
+## Notice
+
+Prefix parsing and resolution is still work-in-progress!
+Test cases mostly check out but it definitely needs to be finished before
+using in real world scenarios.
+
 ## Requires
 
 * Python 3.8+ (only tested on 3.8.10)

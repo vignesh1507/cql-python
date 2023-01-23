@@ -22,4 +22,40 @@ def test_init_parse():
     assert parsed.version == "1.2"
 
 
+def test_init_parse_debug(caplog: pytest.LogCaptureFixture):
+    import logging
+
+    import cql
+
+    with caplog.at_level(logging.INFO, "CQLLexer"):
+        _ = cql.parse(
+            "dc.title any fish or dc.creator any sanderson", debug_show_lexerinfo=True
+        )
+    assert all(record.name == "CQLLexer" for record in caplog.records)
+    assert all(record.funcName == "lex" for record in caplog.records)
+    caplog.clear()
+
+    with caplog.at_level(logging.DEBUG, "CQLParser"):
+        _ = cql.parse(
+            "dc.title any fish or dc.creator any sanderson", debug_show_parserinfo=True
+        )
+    assert all(record.name == "CQLParser" for record in caplog.records)
+    assert {record.funcName for record in caplog.records} == {"yacc", "lr_parse_table"}
+    assert {record.levelname for record in caplog.records} == {
+        "INFO",
+        "DEBUG",
+        "WARNING",
+    }
+    caplog.clear()
+
+    with caplog.at_level(logging.DEBUG, "CQLParserSteps"):
+        _ = cql.parse(
+            "dc.title any fish or dc.creator any sanderson", debug_parsing=True
+        )
+    assert all(record.name == "CQLParserSteps" for record in caplog.records)
+    assert {record.funcName for record in caplog.records} == {"parse"}
+    assert {record.levelname for record in caplog.records} == {"INFO", "DEBUG"}
+    caplog.clear()
+
+
 # ---------------------------------------------------------------------------

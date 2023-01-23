@@ -8,21 +8,26 @@ from .parser import CQLQuery
 
 
 def parse(
-    query: str, debug: bool = False, debug_parser: bool = False
+    query: str,
+    debug_show_lexerinfo: bool = False,
+    debug_show_parserinfo: bool = False,
+    debug_parsing: bool = False,
 ) -> Optional[CQLQuery]:
-    if debug:
-        # to print initial state
-        kwargs_lexer = dict(debug=True, debuglog=logging.getLogger("CQLLexer"))
-    else:
-        kwargs_lexer = dict()
+    kwargs_lexer = dict()
+    kwargs_parser = dict()
+    kwargs_parser_run = dict(tracking=True)
 
-    if debug_parser:
-        # to print initial state and really verbose parsing stuff
-        kwargs_parser = dict(debug=True, debuglog=logging.getLogger("CQLParser"))
-        kwargs_parser_run = dict(tracking=True)
-    else:
-        kwargs_parser = dict()
-        kwargs_parser_run = dict()
+    if debug_show_lexerinfo:
+        # to print initial state (rules)
+        kwargs_lexer.update(dict(debug=True, debuglog=logging.getLogger("CQLLexer")))
+
+    if debug_show_parserinfo:
+        # to print initial state (grammar/rules/states)
+        kwargs_parser.update(dict(debug=True, debuglog=logging.getLogger("CQLParser")))
+
+    if debug_parsing:
+        # for verbose parse step details about state/stack/action/result
+        kwargs_parser_run.update(dict(debug=logging.getLogger("CQLParserSteps")))
 
     cqllexer = CQLLexer()
     cqllexer.build(**kwargs_lexer)
