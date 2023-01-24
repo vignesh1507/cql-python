@@ -76,7 +76,7 @@ class CQLLexer:
     #: A string containing ignored characters (spaces and tabs)
     t_ignore = " \t\r\n\f\v"
 
-    def t_ignore_newline(self, tok: LexToken):
+    def t_ignore_newline(self, tok: LexToken) -> None:
         r"\n+"
         # NOTE: not sure if required
         tok.lexer.lineno += tok.value.count("\n")
@@ -88,7 +88,7 @@ class CQLLexer:
 
     # ---------------------------------------------------
 
-    def find_column(self, token):
+    def find_column(self, token: LexToken) -> int:
         input = self.lexer.lexdata
         line_start = input.rfind("\n", 0, token.lexpos) + 1
         return (token.lexpos - line_start) + 1

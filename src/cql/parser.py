@@ -31,7 +31,7 @@ CQL_DEFAULT_INDEX = "cql.serverChoice"
 # ---------------------------------------------------------------------------
 
 
-def escape(val: str) -> str:
+def escape(val: Union["CQLPrefixedName", str]) -> str:
     if isinstance(val, CQLPrefixedName):
         val = val.name
     if len(val) == 0:
@@ -85,7 +85,9 @@ class CQLPrefixedName:
 
 
 class CQLModifier:  # XCQL: modifier
-    def __init__(self, name: str, comparitor: str = None, value: str = None):
+    def __init__(
+        self, name: str, comparitor: Optional[str] = None, value: Optional[str] = None
+    ):
         self.name = (
             CQLPrefixedName(name) if not isinstance(name, CQLPrefixedName) else name
         )  # XCQL: type
@@ -94,9 +96,9 @@ class CQLModifier:  # XCQL: modifier
         # TODO: check prefix splitting
 
     def toCQL(self) -> str:
-        if self.comparitor is not None:
-            return f"/{escape(self.name)}{self.comparitor}{escape(self.value)}"
-        return f"/{escape(self.name)}"
+        if self.comparitor is None or self.value is None:
+            return f"/{escape(self.name)}"
+        return f"/{escape(self.name)}{self.comparitor}{escape(self.value)}"
 
     def toXCQL(self) -> ET.Element:
         ele = ET.Element("modifier")
@@ -114,7 +116,7 @@ class CQLModifier:  # XCQL: modifier
 
 
 class CQLModifierable:  # XCQL: modifiers
-    def __init__(self, modifiers: List[CQLModifier] = None):
+    def __init__(self, modifiers: Optional[List[CQLModifier]] = None):
         self.modifiers = modifiers  # XCQL: [modifier]
 
     def toCQL(self) -> str:
@@ -139,7 +141,7 @@ class CQLModifierable:  # XCQL: modifiers
 
 
 class CQLPrefix:  # XCQL: prefix
-    def __init__(self, uri: str, prefix: str = None):
+    def __init__(self, uri: str, prefix: Optional[str] = None):
         self.prefix = prefix  # XCQL: name
         self.uri = uri  # XCQL: identifier
 
@@ -191,7 +193,7 @@ class CQLPrefixable:  # XCQL: prefixes
 
 
 class CQLSortSpec(CQLModifierable):  # XCQL: key
-    def __init__(self, index: str, modifiers: List[str] = None):
+    def __init__(self, index: str, modifiers: Optional[List[CQLModifier]] = None):
         super().__init__(modifiers)  # XCQL: modifiers
         self.index = (
             CQLPrefixedName(index) if not isinstance(index, CQLPrefixedName) else index
@@ -252,7 +254,7 @@ class CQLSortable:  # XCQL: sortKeys
 
 
 class CQLRelation(CQLModifierable):  # XCQL: relation
-    def __init__(self, comparitor: str, modifiers: List[CQLModifier] = None):
+    def __init__(self, comparitor: str, modifiers: Optional[List[CQLModifier]] = None):
         super().__init__(modifiers)  # XCQL: modifiers
         self.comparitor = (
             CQLPrefixedName(comparitor)
@@ -280,7 +282,7 @@ class CQLRelation(CQLModifierable):  # XCQL: relation
 
 
 class CQLBoolean(CQLModifierable):  # XCQL: boolean
-    def __init__(self, value: str, modifiers: List[str] = None):
+    def __init__(self, value: str, modifiers: Optional[List[CQLModifier]] = None):
         super().__init__(modifiers)  # XCQL: modifiers
         self.value = value  # XCQL: value
 
@@ -303,7 +305,12 @@ class CQLBoolean(CQLModifierable):  # XCQL: boolean
 
 
 class CQLSearchClause(CQLPrefixable, CQLSortable):  # XCQL: searchClause
-    def __init__(self, term: str, index=None, relation: CQLRelation = None):
+    def __init__(
+        self,
+        term: str,
+        index: Optional[Union[CQLPrefixedName, str]] = None,
+        relation: Optional[CQLRelation] = None,
+    ):
         super().__init__()  # XCQL: prefixes / sortKeys
         self.term = term  # XCQL: term
         if index is not None:
@@ -319,7 +326,7 @@ class CQLSearchClause(CQLPrefixable, CQLSortable):  # XCQL: searchClause
         self.relation = relation  # XCQL: relation
 
     def toCQL(self) -> str:
-        if self.relation is None:
+        if self.relation is None or self.index is None:
             sc = f"{escape(self.term)}"
         else:
             sc = f"{escape(self.index)} {self.relation.toCQL()} {escape(self.term)}"
@@ -406,7 +413,9 @@ class CQLQuery:  # XCQL: triple | searchClause
         self.root = root  # XCQL: triple | searchClause
         self.version = version
 
-    def setServerDefaults(self, addCQLPrefixes: bool = False, serverPrefix: str = None):
+    def setServerDefaults(
+        self, addCQLPrefixes: bool = False, serverPrefix: Optional[str] = None
+    ):
         # iterate over all "empty" fields and set server defaults
         # TODO: also do for prefixes?
 
@@ -474,7 +483,7 @@ class CQLParser:
 
     # ---------------------------------------------------
 
-    def build(self, lexer: Lexer, **kwargs) -> None:
+    def build(self, lexer: Optional[Lexer] = None, **kwargs) -> None:
         if lexer is None:
             lexer = CQLLexer()
             lexer.build()
