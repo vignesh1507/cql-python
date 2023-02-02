@@ -479,7 +479,6 @@ class CQLQuery:  # XCQL: triple | searchClause
 
 
 class CQLParser:
-
     tokens = CQLLexer.tokens
 
     # ---------------------------------------------------
