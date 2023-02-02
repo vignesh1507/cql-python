@@ -1,4 +1,5 @@
 import logging
+import sys
 import xml.etree.ElementTree as ET
 from itertools import groupby
 from typing import List
@@ -488,6 +489,22 @@ class CQLParser:
             lexer = CQLLexer()
             lexer.build()
         self.lexer: Lexer = lexer
+
+        # based on https://github.com/dabeaz/ply/blob/af80858e888c5f36979da88fcb1080de7b848967/src/ply/yacc.py#L2279
+        # and https://github.com/dabeaz/ply/blob/af80858e888c5f36979da88fcb1080de7b848967/src/ply/yacc.py#L2075
+        class HidePErrorRedefinedLogger(yacc.PlyLogger):
+            def warning(self, msg, *args, **kwargs):
+                if (
+                    msg == "%s:%d: Function %s redefined. Previously defined on line %d"
+                    and len(args) == 4
+                    and args[2] == "p_error"
+                    and args[0].endswith("cql/parser.py")
+                ):
+                    return
+                return super().warning(msg, *args, **kwargs)
+
+        kwargs.setdefault("errorlog", HidePErrorRedefinedLogger(sys.stderr))
+
         self.parser: LRParser = yacc.yacc(module=self, **kwargs)
 
     def parse(self, content: str, **kwargs) -> CQLQuery:
