@@ -1,5 +1,17 @@
 # CQL (Contextual Query Language) Parser (for Python)
 
+<!-- START: BADGES -->
+[![cql-parser @ PyPI](https://img.shields.io/pypi/v/cql-parser)](https://pypi.python.org/pypi/cql-parser)
+[![](https://img.shields.io/github/last-commit/Querela/cql-python)](https://github.com/Querela/cql-python/commits/main)
+[![Github Actions: Python package](https://github.com/Querela/cql-python/actions/workflows/python-package.yml/badge.svg)](https://github.com/Querela/cql-python/actions/workflows/python-package.yml)
+
+[![](https://img.shields.io/badge/%20code%20style-black-000000)](https://github.com/psf/black)
+[![](https://img.shields.io/badge/%20imports-isort-%231674b1)](https://pycqa.github.io/isort/)
+[![](https://img.shields.io/badge/linting-flake8-yellowgreen)](https://github.com/PyCQA/flake8)  
+[![](https://img.shields.io/badge/%20doc%20style-sphinx-0a507a.svg)](https://www.sphinx-doc.org/en/master/usage/index.html)
+[![](https://img.shields.io/badge/%20doc%20style-google-3666d6.svg)](https://google.github.io/styleguide/pyguide.html#s3.8-comments-and-docstrings)
+<!-- END: BADGES -->
+
 * [Grammar and Specification](http://www.loc.gov/standards/sru/cql/spec.html)
 
 ## Notice
