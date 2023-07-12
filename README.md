@@ -11,7 +11,7 @@ using in real world scenarios.
 ## Requires
 
 * Python 3.8+ (only tested on 3.8.10)
-* [`ply` _(github version)_](https://github.com/dabeaz/ply)
+* [`ply` _(github version)_](https://github.com/dabeaz/ply) - vendored in [`src/cql/_vendor/ply`](src/cql/_vendor/ply)
 * [`pytest`](https://docs.pytest.org/) for testing
 
 ## Building
@@ -85,6 +85,14 @@ isort --check --diff .
 python3 -m pip install -e .[build]
 python3 -m build
 twine check --strict dist/*
+```
+
+Vendor dependencies:
+```bash
+python3 -m pip install -e .[vendor]
+vendoring sync
+# NOTE: some changes still not automated ...
+git checkout -- src/cql/_vendor/ply/LICENSE
 ```
 
 ## See also

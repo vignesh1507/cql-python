@@ -1,9 +1,9 @@
 import logging
 import re
 
-import ply.lex as lex
-from ply.lex import Lexer
-from ply.lex import LexToken
+import cql._vendor.ply.lex as lex
+from cql._vendor.ply.lex import Lexer
+from cql._vendor.ply.lex import LexToken
 
 LOGGER = logging.getLogger(__name__)
 

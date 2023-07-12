@@ -6,14 +6,13 @@ from typing import List
 from typing import Optional
 from typing import Union
 
-import ply.yacc as yacc
-from ply.lex import Lexer
-from ply.lex import LexToken
-from ply.yacc import LRParser
-from ply.yacc import YaccProduction
-from ply.yacc import YaccSymbol
-
-from .lexer import CQLLexer
+import cql._vendor.ply.yacc as yacc
+from cql._vendor.ply.lex import Lexer
+from cql._vendor.ply.lex import LexToken
+from cql._vendor.ply.yacc import LRParser
+from cql._vendor.ply.yacc import YaccProduction
+from cql._vendor.ply.yacc import YaccSymbol
+from cql.lexer import CQLLexer
 
 LOGGER = logging.getLogger(__name__)
 

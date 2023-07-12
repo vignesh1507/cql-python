@@ -1,3 +1,20 @@
 [build-system]
 requires = ["setuptools", "wheel"]
 build-backend = "setuptools.build_meta"
+
+[tool.vendoring]
+destination = "src/cql/_vendor/"
+requirements = ".vendoring/vendor.txt"
+namespace = "cql._vendor"
+# patches are unfortunately applied before the license download
+#patches-dir = ".vendoring/patches"
+
+[tool.vendoring.license.fallback-urls]
+ply = "https://raw.githubusercontent.com/dabeaz/sly/master/LICENSE"
+
+[tool.black]
+extend-exclude = '''
+(
+  ^/src/cql/_vendor/
+)
+'''

@@ -1,13 +1,13 @@
 import logging
 from typing import Optional
 
-from .lexer import CQLLexer
-from .lexer import CQLLexerError  # noqa: F401
-from .parser import CQLParser  # noqa: F401
-from .parser import CQLParser11  # noqa: F401
-from .parser import CQLParser12
-from .parser import CQLParserError  # noqa: F401
-from .parser import CQLQuery
+from cql.lexer import CQLLexer
+from cql.lexer import CQLLexerError  # noqa: F401
+from cql.parser import CQLParser  # noqa: F401
+from cql.parser import CQLParser11  # noqa: F401
+from cql.parser import CQLParser12
+from cql.parser import CQLParserError  # noqa: F401
+from cql.parser import CQLQuery
 
 
 def parse(
