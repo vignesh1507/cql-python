@@ -73,13 +73,8 @@ class CQLLexer:
 
     # ---------------------------------------------------
 
-    #: A string containing ignored characters (spaces and tabs)
+    #: A string containing ignored characters (spaces, tabs, and newlines)
     t_ignore = " \t\r\n\f\v"
-
-    def t_ignore_newline(self, tok: LexToken) -> None:
-        r"\n+"
-        # NOTE: not sure if required
-        tok.lexer.lineno += tok.value.count("\n")
 
     #: Error handling rule
     def t_error(self, tok: LexToken) -> None:
@@ -114,6 +109,3 @@ class CQLLexer:
                 break
 
             yield tok
-
-
-# ---------------------------------------------------------------------------
